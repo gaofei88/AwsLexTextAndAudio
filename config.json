@@ -1,0 +1,7 @@
+{
+	"botAlias": "$botAlias$",
+	"botName": "$botName$",
+	"region": "$aws_region$",
+	"accessKeyId": "$accessKeyId$",
+	"secretAccessKey": "$secretAccessKey$"
+}
