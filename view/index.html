@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Chat Bot</title>
+		<script type="text/javascript" src="js/recorder.js"></script>
+	</head>
+	<body>
+		<div>chat bot</div>
+
+		<input type="text" id="qns"/>
+		<button onclick="sendText()">Send Text</button>
+		<button id="startRecord" onclick="startRecord()">Start Record</button>
+		<button id="stopRecord" onclick="stopRecord()">Stop Record</button>
+		<script type="text/javascript">
+			var audioContext, 
+				recorder;
+
+			function init(){
+				if(typeof audioContext === 'undefined'){
+					window.AudioContext = window.AudioContext || window.webkitAudioContext;
+					audioContext = new AudioContext();
+					sampleRate = audioContext.sampleRate;
+				}
+
+				navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream){
+					var audioStreamSource = audioContext.createMediaStreamSource(stream);
+					recorder = new Recorder(audioStreamSource);
+				});
+			}
+
+			init();
+
+			function sendText(){
+				var QNS = document.getElementById("qns").value;
+
+				var xhr = new XMLHttpRequest();
+				xhr.open("POST", "/send", true);
+				xhr.setRequestHeader("Content-Type", "application/json");
+				xhr.onreadystatechange = function(){
+					if(xhr.readyState == 4 && xhr.status == 200){
+						var res = JSON.parse(xhr.response);
+						console.log(res);
+					}
+
+				};
+				xhr.send(JSON.stringify({ text: QNS}));
+			}
+
+			function startRecord(){
+				recorder.record();
+			}
+
+			function stopRecord(){
+				recorder.stop();
+
+				recorder.exportWAV(function(encodedWAV){
+					play(encodedWAV);
+
+					var xhr = new XMLHttpRequest();
+					xhr.open("POST", "/send", true);
+					xhr.setRequestHeader("Content-Type", 'audio/wav');
+					xhr.onreadystatechange = function(){
+						if(xhr.readyState == 4 && xhr.status == 200){
+							var res = JSON.parse(xhr.response);
+							play(new Uint8Array(res.audioStream.data));
+						}
+					};
+
+					xhr.send(encodedWAV);
+					recorder.clear();
+				});
+			}
+
+
+			function play(buffer){
+				var myBlob = new Blob([buffer], { type: 'audio/wav' });
+
+				var audioEle = document.createElement('audio');
+
+				var objectUrl = window.URL.createObjectURL(myBlob);
+	
+				audioEle.src = objectUrl;
+
+				audioEle.play().then(function(){
+				 	console.log("played");
+				}).catch(function(err){
+				 	console.log("failed to play.")
+				});
+
+			}
+		</script>
+	</body>
+</html>
